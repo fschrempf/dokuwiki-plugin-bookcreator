@@ -255,6 +255,9 @@ class action_plugin_bookcreator_handleselection extends DokuWiki_Action_Plugin {
      * @return array(title, array(list))
      */
     protected function getSavedSelection($pageid) {
+        require_once(DOKU_INC.'inc/search.php');
+        global $conf;
+
         $title = '';
         $list  = array();
 
@@ -264,19 +267,39 @@ class action_plugin_bookcreator_handleselection extends DokuWiki_Action_Plugin {
         foreach($lines as $i => $line) {
             //skip nonsense
             if(trim($line) == '') continue;
-            if((($i > 0) && substr($line, 0, 7) != "  * [[:")) continue;
+            if((($i > 0) && substr($line, 0, 6) != "  * [[")) continue;
 
             //read title and list
             if($i === 0) {
                 $title = trim(str_replace("======", '', $line));
             } else {
-                $line        = str_replace("  * [[:", '', $line);
+                $line        = str_replace("  * [[", '', $line);
                 $line        = str_replace("]]", '', $line);
                 list($id, /* $title */) = explode('|', $line, 2);
+
+                if(substr($id, 0, 1) === '/' && substr($id, strlen($id) - 1, 1) === '/') {
+                    $id = trim($id, '/');
+                    $id = ltrim($id, ':');
+                    $ns = cleanID(getNS($id));
+                    $ns = utf8_encodeFN(str_replace(':', '/', $ns));
+
+                    $result = array();
+                    $search_opts = array(
+                        'depth' => 0,
+                        'pagesonly' => true,
+                        'listfiles' => true,
+                        'idmatch' => $id,
+                    );
+                    search($result, $conf['datadir'], 'search_universal', $search_opts, $ns, $lvl = 0);
+                    $list = array_merge($list, array_column($result, 'id'));
+                    continue;
+                }
+
                 $id = cleanID($id);
                 if($id == '') {
                     continue;
                 }
+
                 $list[] = $id;
             }
         }
