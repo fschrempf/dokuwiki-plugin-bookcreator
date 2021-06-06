@@ -242,8 +242,9 @@ class action_plugin_bookcreator_handleselection extends DokuWiki_Action_Plugin {
             throw new Exception(sprintf($this->getLang('selectiondontexist'), $pageid));
         }
 
-        list($title, $list) = $this->getSavedSelection($pageid);
+        list($title, $vars, $list) = $this->getSavedSelection($pageid);
         $response['title'] = $title;
+        $response['vars'] = $vars;
         $response['selection'] = $list;
         return $response;
     }
@@ -259,6 +260,7 @@ class action_plugin_bookcreator_handleselection extends DokuWiki_Action_Plugin {
         global $conf;
 
         $title = '';
+        $vars = array();
         $list  = array();
 
         $pagecontent = rawWiki($pageid);
@@ -272,6 +274,13 @@ class action_plugin_bookcreator_handleselection extends DokuWiki_Action_Plugin {
             //read title and list
             if($i === 0) {
                 $title = trim(str_replace("======", '', $line));
+                $options = str_getcsv($title);
+                $title = array_shift($options);
+                foreach($options as $var) {
+                    $tmp = trim($var, "\"");
+                    $tmp = explode('=', $var);
+                    $vars[$tmp[0]] = $tmp[1];
+                }
             } else {
                 $line        = str_replace("  * [[", '', $line);
                 $line        = str_replace("]]", '', $line);
@@ -304,7 +313,7 @@ class action_plugin_bookcreator_handleselection extends DokuWiki_Action_Plugin {
             }
         }
 
-        return array($title, $list);
+        return array($title, $vars, $list);
     }
 
     /**
